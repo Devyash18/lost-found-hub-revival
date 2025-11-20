@@ -118,6 +118,33 @@ export type Database = {
           },
         ]
       }
+      otp_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -126,6 +153,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          two_factor_enabled: boolean | null
           updated_at: string
         }
         Insert: {
@@ -135,6 +163,7 @@ export type Database = {
           full_name: string
           id: string
           phone?: string | null
+          two_factor_enabled?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -144,6 +173,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          two_factor_enabled?: boolean | null
           updated_at?: string
         }
         Relationships: []
@@ -153,7 +183,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_otps: { Args: never; Returns: undefined }
     }
     Enums: {
       item_category:
