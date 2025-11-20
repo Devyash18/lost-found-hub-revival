@@ -7,18 +7,35 @@ import { Link } from 'react-router-dom';
 import { Search, Upload, Bell, CheckCircle, Shield, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Home() {
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const { toast } = useToast();
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message sent!",
-      description: "We'll get back to you as soon as possible.",
-    });
-    setContactForm({ name: '', email: '', message: '' });
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          userName: contactForm.name,
+          userEmail: contactForm.email,
+          message: contactForm.message,
+        }
+      });
+      if (error) throw error;
+      toast({
+        title: "Message sent!",
+        description: "We'll get back to you as soon as possible.",
+      });
+      setContactForm({ name: '', email: '', message: '' });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
