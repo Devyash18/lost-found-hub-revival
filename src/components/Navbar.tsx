@@ -1,7 +1,9 @@
 import { useAuth } from '@/lib/auth';
+import { useTheme } from '@/lib/theme';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Settings as SettingsIcon, Moon, Sun } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,10 +11,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Navbar = () => {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -28,23 +46,37 @@ export const Navbar = () => {
           </h1>
         </Link>
 
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9"
+          >
+            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </Button>
+
           {user ? (
             <>
-              <Link to="/browse" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link to="/browse" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 Browse Items
               </Link>
-              <Link to="/report" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link to="/report" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 Report Item
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <User size={16} />
-                    Account
+                  <Button variant="ghost" size="sm" className="gap-2 h-9">
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || ''} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">Account</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                     <LayoutDashboard size={16} className="mr-2" />
                     Dashboard
@@ -52,6 +84,10 @@ export const Navbar = () => {
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User size={16} className="mr-2" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <SettingsIcon size={16} className="mr-2" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -63,13 +99,13 @@ export const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/#about" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link to="/#about" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 About
               </Link>
-              <Link to="/#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link to="/#how-it-works" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 How It Works
               </Link>
-              <Link to="/#contact" className="text-sm font-medium hover:text-primary transition-colors">
+              <Link to="/#contact" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 Contact
               </Link>
               <Button asChild size="sm">
