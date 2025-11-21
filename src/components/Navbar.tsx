@@ -41,7 +41,7 @@ export const Navbar = () => {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <h1 className="text-2xl font-bold bg-hero-gradient bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-hero-gradient bg-clip-text text-transparent hover-scale transition-all">
             Lost & Found
           </h1>
         </Link>
@@ -51,7 +51,7 @@ export const Navbar = () => {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9"
+            className="h-9 w-9 hover-scale transition-all"
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </Button>
@@ -66,8 +66,8 @@ export const Navbar = () => {
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 h-9">
-                    <Avatar className="h-7 w-7">
+                  <Button variant="ghost" size="sm" className="gap-2 h-9 hover-scale transition-all">
+                    <Avatar className="h-7 w-7 transition-transform hover:scale-110">
                       <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || ''} />
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {profile?.full_name?.[0]?.toUpperCase() || 'U'}
@@ -76,7 +76,7 @@ export const Navbar = () => {
                     <span className="hidden sm:inline">Account</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 animate-scale-in">
                   <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                     <LayoutDashboard size={16} className="mr-2" />
                     Dashboard
