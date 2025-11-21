@@ -1,14 +1,17 @@
-import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, X, Trash2, AlertTriangle } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { Trash2, Upload, Shield, User, Lock, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
@@ -24,13 +27,13 @@ import {
 
 export default function Settings() {
   const { user, signOut } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
 
   const { data: profile, isLoading } = useQuery({
@@ -44,13 +47,14 @@ export default function Settings() {
       if (error) throw error;
       setFullName(data.full_name || '');
       setPhone(data.phone || '');
+      setTwoFactorEnabled(data.two_factor_enabled || false);
       return data;
     },
     enabled: !!user?.id,
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: { full_name?: string; phone?: string; two_factor_enabled?: boolean }) => {
+    mutationFn: async (updates: { full_name?: string; phone?: string }) => {
       const { error } = await supabase
         .from('profiles')
         .update(updates)
@@ -59,30 +63,83 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      toast.success('Profile updated successfully');
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+      toast.error('Failed to update profile: ' + error.message);
+    },
+  });
+
+  const toggle2FAMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ two_factor_enabled: enabled })
+        .eq('id', user?.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      setTwoFactorEnabled(enabled);
+      toast.success(enabled ? '2FA enabled successfully' : '2FA disabled successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update 2FA settings: ' + error.message);
+    },
+  });
+
+  const deleteAvatarMutation = useMutation({
+    mutationFn: async () => {
+      if (!profile?.avatar_url) return;
+      
+      const oldPath = profile.avatar_url.split('/').pop();
+      if (oldPath) {
+        await supabase.storage.from('item-images').remove([`avatars/${oldPath}`]);
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user?.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      toast.success('Profile picture removed successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to remove avatar: ' + error.message);
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      if (!deletePassword) throw new Error('Please enter your password');
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: deletePassword,
       });
+
+      if (signInError) throw new Error('Incorrect password');
+
+      const { error } = await supabase.auth.admin.deleteUser(user?.id || '');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success('Account deleted successfully');
+      await signOut();
+      navigate('/');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete account');
+      setDeletePassword('');
     },
   });
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfileMutation.mutate({
-      full_name: fullName,
-      phone: phone,
-    });
-  };
-
-  const handle2FAToggle = (checked: boolean) => {
-    updateProfileMutation.mutate({ two_factor_enabled: checked });
+    updateProfileMutation.mutate({ full_name: fullName, phone });
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,27 +147,18 @@ export default function Settings() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Error",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
+      toast.error('Please upload an image file');
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image must be less than 2MB",
-        variant: "destructive",
-      });
+      toast.error('Image must be less than 2MB');
       return;
     }
 
     try {
-      setUploading(true);
+      setUploadingAvatar(true);
 
-      // Delete old avatar if exists
       if (profile?.avatar_url) {
         const oldPath = profile.avatar_url.split('/').pop();
         if (oldPath) {
@@ -140,96 +188,11 @@ export default function Settings() {
       if (updateError) throw updateError;
 
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      toast({
-        title: "Success",
-        description: "Profile picture updated",
-      });
+      toast.success('Profile picture updated successfully');
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error('Failed to upload avatar: ' + error.message);
     } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleRemoveAvatar = async () => {
-    if (!profile?.avatar_url) return;
-
-    try {
-      const oldPath = profile.avatar_url.split('/').pop();
-      if (oldPath) {
-        await supabase.storage.from('item-images').remove([`avatars/${oldPath}`]);
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: null })
-        .eq('id', user?.id);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-      toast({
-        title: "Success",
-        description: "Profile picture removed",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      toast({
-        title: "Error",
-        description: "Please enter your password to confirm",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Verify password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: deletePassword,
-      });
-
-      if (signInError) {
-        toast({
-          title: "Error",
-          description: "Incorrect password",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Delete user items, claims, and profile (handled by CASCADE)
-      // Then delete auth user
-      const { error } = await supabase.auth.admin.deleteUser(user?.id || '');
-      
-      if (error) throw error;
-
-      toast({
-        title: "Account Deleted",
-        description: "Your account has been permanently deleted",
-      });
-
-      await signOut();
-      navigate('/');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to delete account. Please contact support.",
-        variant: "destructive",
-      });
+      setUploadingAvatar(false);
     }
   };
 
@@ -243,192 +206,253 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background py-12">
-      <div className="container max-w-4xl">
-        <h1 className="text-4xl font-bold mb-8">Settings</h1>
+      <div className="container max-w-5xl">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+            <SettingsIcon className="text-primary" />
+            Settings
+          </h1>
+          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        </div>
 
-        <div className="space-y-6">
-          {/* Profile Picture */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>Update your profile picture</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-primary"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold">
+        <Tabs defaultValue="profile" className="space-y-6 animate-fade-in">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+            <TabsTrigger value="profile" className="gap-2">
+              <User size={16} />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2">
+              <Shield size={16} />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-2">
+              <Lock size={16} />
+              Account
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-6">
+            {/* Profile Picture Section */}
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User size={20} className="text-primary" />
+                  Profile Picture
+                </CardTitle>
+                <CardDescription>Update your profile picture and make it stand out</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <Avatar className="h-32 w-32 border-4 border-primary/20 transition-transform hover:scale-105">
+                    <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || ''} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-3xl">
                       {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <Label htmlFor="avatar-upload" className="cursor-pointer">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Upload size={16} />
+                          <span className="font-medium">Choose a photo</span>
+                        </div>
+                      </Label>
+                      <Input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        disabled={uploadingAvatar}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        JPG, PNG or GIF (max 2MB). For best results, use a square image.
+                      </p>
                     </div>
-                  )}
+                    {profile?.avatar_url && (
+                      <Button
+                        variant="outline"
+                        onClick={() => deleteAvatarMutation.mutate()}
+                        disabled={deleteAvatarMutation.isPending}
+                        className="hover-scale"
+                      >
+                        <Trash2 size={16} />
+                        Remove Photo
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <Button type="button" disabled={uploading} asChild>
-                      <span>
-                        {uploading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
-                        )}
-                        Upload New
-                      </span>
-                    </Button>
-                  </Label>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                  {profile?.avatar_url && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleRemoveAvatar}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Profile Information */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={profile?.email || ''}
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Email cannot be changed
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number (Optional)</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 1234567890"
-                  />
-                </div>
-                <Button type="submit" disabled={updateProfileMutation.isPending}>
-                  {updateProfileMutation.isPending && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  )}
-                  Save Changes
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Two-Factor Authentication */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Two-Factor Authentication</CardTitle>
-              <CardDescription>
-                Enable 2FA for additional security on login
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium">Email OTP Verification</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive a one-time password via email when signing in
-                  </p>
-                </div>
-                <Switch
-                  checked={profile?.two_factor_enabled || false}
-                  onCheckedChange={handle2FAToggle}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Delete Account */}
-          <Card className="shadow-card border-destructive/50">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>
-                Permanently delete your account and all associated data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      account and remove all your data from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
+            {/* Profile Information */}
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User size={20} className="text-primary" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>Update your personal details and contact information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleProfileUpdate} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="deletePassword">Enter your password to confirm</Label>
+                    <Label htmlFor="name" className="text-base">Full Name</Label>
                     <Input
-                      id="deletePassword"
-                      type="password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                      placeholder="Your password"
+                      id="name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="h-11"
                     />
                   </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setDeletePassword('')}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteAccount}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
-        </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-base">Email Address</Label>
+                    <Input
+                      id="email"
+                      value={profile?.email}
+                      disabled
+                      className="h-11 bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your Chitkara University email cannot be changed
+                    </p>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-base">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      className="h-11"
+                    />
+                  </div>
+                  
+                  <Button type="submit" disabled={updateProfileMutation.isPending} className="hover-scale">
+                    {updateProfileMutation.isPending ? 'Saving Changes...' : 'Save Changes'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security" className="space-y-6">
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield size={20} className="text-primary" />
+                  Two-Factor Authentication
+                </CardTitle>
+                <CardDescription>
+                  Add an extra layer of security to your account with 2FA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="2fa" className="text-base font-semibold">
+                        Enable Two-Factor Authentication
+                      </Label>
+                      {twoFactorEnabled && (
+                        <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs font-medium">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      When enabled, you'll need to enter a code sent to your email in addition 
+                      to your password when signing in. This helps protect your account from 
+                      unauthorized access.
+                    </p>
+                  </div>
+                  <Switch
+                    id="2fa"
+                    checked={twoFactorEnabled}
+                    onCheckedChange={(checked) => toggle2FAMutation.mutate(checked)}
+                    disabled={toggle2FAMutation.isPending}
+                    className="mt-1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Account Tab */}
+          <TabsContent value="account" className="space-y-6">
+            <Card className="border-destructive/50 shadow-card hover:shadow-card-hover transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">
+                  <Trash2 size={20} />
+                  Danger Zone
+                </CardTitle>
+                <CardDescription>
+                  Irreversible and destructive actions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/5">
+                  <h4 className="font-semibold mb-2">Delete Account</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Once you delete your account, there is no going back. Please be certain.
+                    All your data including reported items, claims, and profile information 
+                    will be permanently removed.
+                  </p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="hover-scale">
+                        <Trash2 size={16} />
+                        Delete My Account
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <p>This action cannot be undone. This will permanently:</p>
+                          <ul className="list-disc list-inside space-y-1 ml-2">
+                            <li>Delete your account</li>
+                            <li>Remove all your reported items</li>
+                            <li>Delete all your claims</li>
+                            <li>Erase your profile information</li>
+                          </ul>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="space-y-2">
+                        <Label htmlFor="deletePassword">Enter your password to confirm</Label>
+                        <Input
+                          id="deletePassword"
+                          type="password"
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          placeholder="Your password"
+                        />
+                      </div>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeletePassword('')}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteAccountMutation.mutate()}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          {deleteAccountMutation.isPending ? 'Deleting...' : 'Yes, Delete My Account'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
