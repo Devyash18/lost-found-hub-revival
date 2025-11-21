@@ -41,21 +41,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section id="hero" className="relative overflow-hidden bg-hero-gradient py-20 md:py-32">
+      <section id="hero" className="relative overflow-hidden bg-hero-gradient py-20 md:py-32 animate-fade-in">
         <div className="container relative z-10">
           <div className="mx-auto max-w-4xl text-center text-white">
-            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl animate-scale-in">
               Reuniting Lost Items With Their Owners
             </h1>
-            <p className="mb-8 text-lg md:text-xl opacity-90">
+            <p className="mb-8 text-lg md:text-xl opacity-90 animate-fade-in">
               Our community lost and found system helps people recover their lost belongings quickly and easily. 
               Whether you've lost something or found an item, we're here to help.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" variant="secondary" className="text-lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
+              <Button asChild size="lg" variant="secondary" className="text-lg hover-scale">
                 <Link to="/auth">Report an Item</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white">
+              <Button asChild size="lg" variant="outline" className="text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white hover-scale">
                 <Link to="/browse">Browse Items</Link>
               </Button>
             </div>
@@ -67,7 +67,7 @@ export default function Home() {
       {/* About Section */}
       <section id="about" className="py-20 bg-muted/30">
         <div className="container">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto max-w-3xl text-center animate-fade-in">
             <h2 className="mb-4 text-3xl font-bold">About Lost & Found Hub</h2>
             <p className="text-lg text-muted-foreground">
               We're a community-driven platform dedicated to helping people reunite with their lost belongings. 
@@ -77,9 +77,9 @@ export default function Home() {
           </div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-3">
-            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 hover-scale animate-fade-in">
               <CardContent className="pt-6">
-                <Shield className="mb-4 h-12 w-12 text-primary" />
+                <Shield className="mb-4 h-12 w-12 text-primary transition-transform hover:scale-110" />
                 <h3 className="mb-2 text-xl font-bold">Secure & Safe</h3>
                 <p className="text-muted-foreground">
                   Your data is protected with industry-standard security measures.
@@ -87,9 +87,9 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 hover-scale animate-fade-in">
               <CardContent className="pt-6">
-                <Clock className="mb-4 h-12 w-12 text-primary" />
+                <Clock className="mb-4 h-12 w-12 text-primary transition-transform hover:scale-110" />
                 <h3 className="mb-2 text-xl font-bold">Quick Results</h3>
                 <p className="text-muted-foreground">
                   Get instant notifications when someone reports your lost item.
@@ -97,9 +97,9 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 hover-scale animate-fade-in">
               <CardContent className="pt-6">
-                <CheckCircle className="mb-4 h-12 w-12 text-primary" />
+                <CheckCircle className="mb-4 h-12 w-12 text-primary transition-transform hover:scale-110" />
                 <h3 className="mb-2 text-xl font-bold">Easy to Use</h3>
                 <p className="text-muted-foreground">
                   Simple interface makes reporting and finding items effortless.

@@ -114,7 +114,7 @@ export default function Browse() {
         ) : filteredItems && filteredItems.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="shadow-card hover:shadow-card-hover transition-all overflow-hidden group">
+              <Card key={item.id} className="shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden group animate-fade-in hover-scale">
                 <Link to={`/item/${item.id}`}>
                   {item.image_url && (
                     <div className="aspect-video overflow-hidden">
