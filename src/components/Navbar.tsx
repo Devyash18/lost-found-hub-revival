@@ -2,6 +2,7 @@ import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
+import { NotificationsDropdown } from './NotificationsDropdown';
 import { LogOut, User, LayoutDashboard, Settings as SettingsIcon, Moon, Sun } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -42,11 +43,12 @@ export const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <h1 className="text-2xl font-bold bg-hero-gradient bg-clip-text text-transparent hover-scale transition-all">
-            Lost & Found
+            ÉduPortail
           </h1>
         </Link>
 
         <nav className="flex items-center gap-4">
+          {user && <NotificationsDropdown />}
           <Button
             variant="ghost"
             size="icon"

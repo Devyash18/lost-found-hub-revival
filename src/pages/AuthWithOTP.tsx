@@ -82,7 +82,7 @@ export default function Auth() {
         if (error) throw error;
         toast({
           title: "Account created!",
-          description: "Welcome to Lost & Found Hub.",
+          description: "Welcome to ÉduPortail.",
         });
         navigate('/dashboard');
       }
@@ -189,8 +189,8 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-hero-gradient items-center justify-center p-12">
         <div className="max-w-md text-center text-white">
-          <h1 className="text-5xl font-bold mb-6">Lost & Found Hub</h1>
-          <p className="text-xl mb-8">Reuniting Lost Things With Their Owners 💜💚</p>
+          <h1 className="text-5xl font-bold mb-6">ÉduPortail</h1>
+          <p className="text-xl mb-8">Your Campus Lost & Found Portal 💜💚</p>
           <p className="text-lg opacity-90">
             Join our Chitkara University community to help people find their lost items or reunite found items with their owners.
           </p>

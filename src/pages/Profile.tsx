@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Mail, Phone, Calendar, Package, CheckCircle, Settings, Shield } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Mail, Phone, Calendar, Package, CheckCircle, Settings, Shield, Clock, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Profile() {
@@ -49,6 +50,23 @@ export default function Profile() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['user-activities', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!user?.id,
   });
@@ -252,6 +270,53 @@ export default function Profile() {
                     <Button asChild className="mt-4" variant="outline">
                       <Link to="/browse">Browse Items</Link>
                     </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Activity Timeline */}
+            <Card className="shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock size={20} className="text-primary" />
+                  Activity Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activities.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock size={48} className="mx-auto mb-3 opacity-20" />
+                    <p>No activity yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activities.map((activity: any, index: number) => (
+                      <div key={activity.id} className="relative">
+                        {index !== activities.length - 1 && (
+                          <div className="absolute left-4 top-8 bottom-0 w-px bg-border" />
+                        )}
+                        <div className="flex gap-4 items-start">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center relative z-10">
+                            {activity.activity_type === 'item_reported' && <Package className="h-4 w-4 text-primary" />}
+                            {activity.activity_type === 'claim_made' && <CheckCircle className="h-4 w-4 text-primary" />}
+                            {activity.activity_type === 'profile_updated' && <Settings className="h-4 w-4 text-primary" />}
+                          </div>
+                          <div className="flex-1 pb-4">
+                            <p className="text-sm font-medium">{activity.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(activity.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

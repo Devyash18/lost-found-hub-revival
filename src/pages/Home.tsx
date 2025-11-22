@@ -68,7 +68,7 @@ export default function Home() {
       <section id="about" className="py-20 bg-muted/30">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center animate-fade-in">
-            <h2 className="mb-4 text-3xl font-bold">About Lost & Found Hub</h2>
+            <h2 className="mb-4 text-3xl font-bold">About ÉduPortail</h2>
             <p className="text-lg text-muted-foreground">
               We're a community-driven platform dedicated to helping people reunite with their lost belongings. 
               Our platform connects those who have lost items with those who have found them, making the recovery 
@@ -214,7 +214,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container text-center text-muted-foreground">
-          <p>© 2025 Lost & Found Hub. All rights reserved.</p>
+          <p>© 2025 ÉduPortail. All rights reserved.</p>
         </div>
       </footer>
     </div>
