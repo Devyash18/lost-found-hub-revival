@@ -6,7 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
+import { z } from 'zod';
+
+const passwordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least 1 lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least 1 number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least 1 special character');
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,13 +24,47 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   
   const { signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const validatePassword = (pwd: string) => {
+    const errors: string[] = [];
+    if (pwd.length < 8) errors.push('At least 8 characters');
+    if (!/[A-Z]/.test(pwd)) errors.push('At least 1 uppercase letter');
+    if (!/[a-z]/.test(pwd)) errors.push('At least 1 lowercase letter');
+    if (!/[0-9]/.test(pwd)) errors.push('At least 1 number');
+    if (!/[^A-Za-z0-9]/.test(pwd)) errors.push('At least 1 special character');
+    setPasswordErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    if (!isLogin && !showForgotPassword) {
+      validatePassword(newPassword);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password for signup
+    if (!isLogin && !showForgotPassword) {
+      const isValid = validatePassword(password);
+      if (!isValid) {
+        toast({
+          title: "Invalid Password",
+          description: "Please meet all password requirements.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
@@ -127,7 +169,7 @@ export default function Auth() {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={handlePasswordChange}
                       required
                     />
                     <button
@@ -137,6 +179,32 @@ export default function Auth() {
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {!isLogin && !showForgotPassword && password && (
+                <div className="space-y-2 p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-sm font-medium text-foreground mb-2">Password Requirements:</p>
+                  <div className="space-y-1">
+                    {[
+                      { text: 'At least 8 characters', valid: password.length >= 8 },
+                      { text: 'At least 1 uppercase letter', valid: /[A-Z]/.test(password) },
+                      { text: 'At least 1 lowercase letter', valid: /[a-z]/.test(password) },
+                      { text: 'At least 1 number', valid: /[0-9]/.test(password) },
+                      { text: 'At least 1 special character', valid: /[^A-Za-z0-9]/.test(password) }
+                    ].map((req, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        {req.valid ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        )}
+                        <span className={req.valid ? 'text-green-500' : 'text-muted-foreground'}>
+                          {req.text}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
