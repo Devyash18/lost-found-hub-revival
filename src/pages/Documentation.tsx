@@ -163,7 +163,23 @@ export default function Documentation() {
 4. Owner reviews claim and contact information
 5. Direct communication enabled between parties
 
-### 3.5 Notification System
+### 3.5 Chat System (Owner ↔ Finder)
+**Real-time Messaging**
+- Direct messaging between item owner and claimer
+- Real-time updates via Supabase Realtime
+- Message persistence in database
+- Only participants of a claim can chat
+- Secure RLS policies ensure privacy
+
+**Chat Features**
+- Send text messages in real-time
+- View message history
+- Timestamp display for each message
+- Sender identification
+- Message notifications
+- Sequential message display
+
+### 3.6 Notification System
 **Real-time Notifications**
 - Powered by Supabase Realtime
 - Instant notification updates without page refresh
@@ -182,7 +198,7 @@ export default function Documentation() {
 - Link to related item
 - Notification persistence
 
-### 3.6 Social Sharing
+### 3.7 Social Sharing
 **Share Lost Items**
 - WhatsApp sharing with pre-filled message
 - Twitter/X sharing with hashtags and link
@@ -195,7 +211,7 @@ export default function Documentation() {
 - Increases item visibility
 - Enhances recovery chances
 
-### 3.7 User Profile & Settings
+### 3.8 User Profile & Settings
 
 **Profile Management**
 - Avatar upload and management
@@ -221,7 +237,7 @@ export default function Documentation() {
    - Data export options (future)
    - Privacy settings
 
-### 3.8 Activity Timeline
+### 3.9 Activity Timeline
 **Comprehensive Activity Tracking**
 - All user actions logged with timestamps
 - Activity types tracked:
@@ -244,7 +260,7 @@ export default function Documentation() {
 - Timestamp display
 - Filterable by type (future enhancement)
 
-### 3.9 Browse & Search
+### 3.10 Browse & Search
 **Browse Items**
 - View all lost and found items
 - Filter by type (lost/found)
@@ -258,7 +274,7 @@ export default function Documentation() {
 - Category-based filtering
 - Location-based filtering (future)
 
-### 3.10 Theme Support
+### 3.11 Theme Support
 **Dark/Light Mode**
 - System preference detection
 - Manual toggle in navbar
@@ -340,6 +356,14 @@ export default function Documentation() {
 - verified (boolean, default: false)
 - created_at (timestamp)
 
+**messages**
+- id (uuid, PK)
+- claim_id (uuid, FK → claims.id)
+- sender_id (uuid, FK → profiles.id)
+- receiver_id (uuid, FK → profiles.id)
+- content (text, not null)
+- created_at (timestamp)
+
 ### 4.2 Row-Level Security (RLS) Policies
 
 **profiles**
@@ -369,6 +393,10 @@ export default function Documentation() {
 - Users can view own OTP codes (SELECT: auth.uid() = user_id)
 - Users can insert own OTP codes (INSERT: auth.uid() = user_id)
 - Users can update own OTP codes (UPDATE: auth.uid() = user_id)
+
+**messages**
+- Users can view messages if they are sender or receiver (SELECT)
+- Users can insert messages if they are sender or receiver (INSERT)
 
 ### 4.3 Database Functions
 

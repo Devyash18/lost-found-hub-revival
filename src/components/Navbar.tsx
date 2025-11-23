@@ -101,15 +101,15 @@ export const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/#about" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
+              <a href="/#about" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 About
-              </Link>
-              <Link to="/#how-it-works" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
+              </a>
+              <a href="/#how-it-works" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 How It Works
-              </Link>
-              <Link to="/#contact" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
+              </a>
+              <a href="/#contact" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
                 Contact
-              </Link>
+              </a>
               <Button asChild size="sm">
                 <Link to="/auth">Get Started</Link>
               </Button>
