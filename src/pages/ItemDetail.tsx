@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, User, Phone, Mail, Share2, MessageCircle, Facebook, Twitter } from 'lucide-react';
+import { ChatDialog } from '@/components/ChatDialog';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -300,9 +301,17 @@ export default function ItemDetail() {
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    You claimed this item on {new Date(existingClaim.created_at).toLocaleDateString()}
-                  </p>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Claimed on {new Date(existingClaim.created_at).toLocaleDateString()}
+                    </p>
+                    <ChatDialog
+                      claimId={existingClaim.id}
+                      itemOwnerId={item.user_id}
+                      claimerId={user.id}
+                      itemTitle={item.title}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
