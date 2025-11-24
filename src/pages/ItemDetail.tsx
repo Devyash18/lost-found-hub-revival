@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, User, Phone, Mail, Share2, MessageCircle, Facebook, Twitter } from 'lucide-react';
 import { ChatDialog } from '@/components/ChatDialog';
+import { AppointmentScheduler } from '@/components/AppointmentScheduler';
+import { AppointmentsList } from '@/components/AppointmentsList';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -311,6 +313,25 @@ export default function ItemDetail() {
                       claimerId={user.id}
                       itemTitle={item.title}
                     />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Appointment Scheduling Section */}
+            {user && existingClaim && item.type === 'found' && (
+              <Card className="mt-6 shadow-card hover:shadow-card-hover transition-all duration-300 animate-scale-in">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-4 text-lg">Schedule Meetup</h3>
+                  <div className="space-y-4">
+                    <AppointmentScheduler
+                      claimId={existingClaim.id}
+                      itemTitle={item.title}
+                    />
+                    <div className="pt-4 border-t">
+                      <h4 className="font-medium text-sm mb-3 text-muted-foreground">Scheduled Appointments</h4>
+                      <AppointmentsList claimId={existingClaim.id} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

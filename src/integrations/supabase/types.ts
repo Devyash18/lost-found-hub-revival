@@ -41,6 +41,50 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          claim_id: string
+          created_at: string
+          created_by: string
+          id: string
+          location: string
+          notes: string | null
+          scheduled_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          location: string
+          notes?: string | null
+          scheduled_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          location?: string
+          notes?: string | null
+          scheduled_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           claimer_id: string
@@ -309,6 +353,7 @@ export type Database = {
     Functions: {
       cleanup_expired_otps: { Args: never; Returns: undefined }
       cleanup_old_activities: { Args: never; Returns: undefined }
+      send_appointment_reminders: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
