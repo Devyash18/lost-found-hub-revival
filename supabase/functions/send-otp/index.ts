@@ -64,7 +64,11 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
-    if (!emailResponse.ok) throw new Error("Failed to send OTP email");
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      console.error("Resend API error:", errorData);
+      throw new Error(`Failed to send OTP email: ${JSON.stringify(errorData)}`);
+    }
 
     return new Response(
       JSON.stringify({ success: true }),
