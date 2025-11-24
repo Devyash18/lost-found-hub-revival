@@ -51,7 +51,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Lost & Found Hub <onboarding@resend.dev>",
+        from: "Lost & Found Hub <y6120867@gmail.com>",
         to: [email],
         subject: "Your Login OTP - Lost & Found Hub",
         html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
