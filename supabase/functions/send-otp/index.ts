@@ -51,11 +51,11 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Lost & Found Hub <noreply@onboarding.resend.dev>",  // Change to your verified domain after setup
+        from: "ÉduPortail <onboarding@resend.dev>",
         to: [email],
-        subject: "Your Login OTP - Lost & Found Hub",
+        subject: "Your Login OTP - ÉduPortail",
         html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #7c3aed;">Lost & Found Hub</h1>
+          <h1 style="color: #7c3aed;">ÉduPortail</h1>
           <h2>Your Login OTP</h2>
           <p>Use this code to complete your login:</p>
           <div style="background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #7c3aed;">${otp}</div>
