@@ -78,39 +78,14 @@ export default function Auth() {
         });
         setShowForgotPassword(false);
       } else if (isLogin) {
-        // First authenticate with password
-        const { error, data } = await signIn(email, password) as any;
+        const { error } = await signIn(email, password) as any;
         if (error) throw error;
         
-        // Check if user has 2FA enabled
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('two_factor_enabled')
-          .eq('id', data?.user?.id)
-          .single();
-
-        if (profile?.two_factor_enabled) {
-          // Send OTP
-          setTempUserId(data?.user?.id);
-          const response = await supabase.functions.invoke('send-otp', {
-            body: { email, userId: data?.user?.id }
-          });
-          
-          if (response.error) throw response.error;
-          
-          setShowOTPInput(true);
-          toast({
-            title: "OTP Sent",
-            description: "Check your email for the verification code.",
-          });
-        } else {
-          // No 2FA, proceed to dashboard
-          toast({
-            title: "Welcome back!",
-            description: "You've successfully signed in.",
-          });
-          navigate('/dashboard');
-        }
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in.",
+        });
+        navigate('/dashboard');
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
