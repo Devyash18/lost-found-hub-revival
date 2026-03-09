@@ -1,11 +1,14 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { mockUsers, MockProfile } from '@/data/mockData';
+
+interface MockUser {
+  id: string;
+  email: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: MockUser | null;
+  profile: MockProfile | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -16,67 +19,37 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<MockUser | null>(null);
+  const [profile, setProfile] = useState<MockProfile | null>(null);
+  const loading = false;
 
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+  const signUp = useCallback(async (email: string, _password: string, fullName: string) => {
+    // Simulate signup — just log them in as user-1
+    const mockProfile = { ...mockUsers[0], email, full_name: fullName };
+    setUser({ id: mockProfile.id, email });
+    setProfile(mockProfile);
+    return { error: null };
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        }
-      }
-    });
-    return { error };
-  };
+  const signIn = useCallback(async (email: string, _password: string) => {
+    // Find user by email or default to user-1
+    const found = mockUsers.find(u => u.email === email) || mockUsers[0];
+    setUser({ id: found.id, email: found.email });
+    setProfile(found);
+    return { error: null };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  };
+  const signOut = useCallback(async () => {
+    setUser(null);
+    setProfile(null);
+  }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    return { error };
-  };
+  const resetPassword = useCallback(async (_email: string) => {
+    return { error: null };
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, signUp, signIn, signOut, resetPassword, loading }}>
+    <AuthContext.Provider value={{ user, profile, signUp, signIn, signOut, resetPassword, loading }}>
       {children}
     </AuthContext.Provider>
   );
